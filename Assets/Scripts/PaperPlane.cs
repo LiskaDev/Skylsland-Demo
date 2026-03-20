@@ -20,6 +20,23 @@ public class PaperPlane : MonoBehaviour
     [SerializeField] private bool isFlying = false;
     [SerializeField] private float currentSpeed = 0f;
 
+    [Header("麦克风检测")]
+    // 吹气触发的音量阈值，0-1之间，越小越灵敏
+    [SerializeField] private float blowThreshold = 0.1f;
+    // 吹气持续多少秒才触发（防止误触）
+    [SerializeField] private float blowDuration = 0.3f;
+    // 是否启用麦克风控制
+    [SerializeField] private bool micEnabled = true;
+
+    // 麦克风相关内部变量
+    private AudioClip micClip;
+    private string micDevice;
+    private float blowTimer = 0f;
+    private bool micReady = false;
+
+    [Header("调试")]
+    [SerializeField] private TMPro.TextMeshProUGUI micVolumeText;
+
     [Header("UI")]
     [SerializeField] private GameObject planeUI;
 
@@ -65,6 +82,29 @@ public class PaperPlane : MonoBehaviour
         seatPoint = seat.transform;
 
         currentSpeed = minSpeed;
+
+        // 初始化麦克风
+        InitMicrophone();
+    }
+
+    void InitMicrophone()
+    {
+        // 检查有没有麦克风
+        if (Microphone.devices.Length == 0)
+        {
+            Debug.Log("没有检测到麦克风！");
+            micEnabled = false;
+            return;
+        }
+
+        // 使用第一个麦克风设备
+        micDevice = Microphone.devices[0];
+
+        // 开始录音：设备名，循环录制，1秒缓冲，44100采样率
+        micClip = Microphone.Start(micDevice, true, 1, 44100);
+
+        micReady = true;
+        Debug.Log("麦克风已就绪：" + micDevice);
     }
 
     void Update()
@@ -73,6 +113,19 @@ public class PaperPlane : MonoBehaviour
         {
             float dist = Vector3.Distance(transform.position, player.position);
             planeUI.SetActive(!isFlying && dist <= boardDistance);
+        }
+
+        // 麦克风吹气检测
+        if (micEnabled && micReady && !isFlying)
+        {
+            CheckBlowing();
+        }
+
+        // 显示当前音量（调试用）
+        if (micVolumeText != null)
+        {
+            float vol = GetMicVolume();
+            micVolumeText.text = "Mic: " + vol.ToString("F3");
         }
 
         if (Input.GetKeyDown(KeyCode.F))
@@ -233,34 +286,83 @@ public class PaperPlane : MonoBehaviour
         isFlying = false;
         isLanded = false;
 
-        // 确保碰撞体开启
         if (planeCol != null)
             planeCol.enabled = true;
 
-        // 先把飞机自身旋转清理干净：去掉bank角，只保留yaw
         currentBankAngle = 0f;
         transform.rotation = Quaternion.Euler(0f, currentYaw, 0f);
 
-        // 飞机停在原地不动，锁死物理
+        // 先清除速度（此时还没设isKinematic）
         rb.velocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+
+        // 再锁死
         rb.isKinematic = true;
 
-        // 恢复碰撞
         if (playerCol != null && planeCol != null)
             Physics.IgnoreCollision(playerCol, planeCol, false);
 
         playerRb.isKinematic = false;
         playerMovement.enabled = true;
-
-        // 把玩家放到飞机旁边
         player.position = transform.position + Vector3.up * 2f;
-
-        // 用我们自己维护的yaw角度直接设置玩家朝向，干净可靠
         player.rotation = Quaternion.Euler(0f, currentYaw, 0f);
-
         playerRb.velocity = Vector3.zero;
         currentSpeed = minSpeed;
         Debug.Log("下机！");
+    }
+
+    void CheckBlowing()
+    {
+        float volume = GetMicVolume();
+
+        if (volume > blowThreshold)
+        {
+            // 音量超过阈值，累计吹气时间
+            blowTimer += Time.deltaTime;
+
+            // 吹气时间够了，触发上机
+            if (blowTimer >= blowDuration)
+            {
+                float dist = Vector3.Distance(transform.position, player.position);
+                if (dist <= boardDistance)
+                {
+                    blowTimer = 0f;
+                    Debug.Log("检测到吹气！启动飞机！");
+                    BoardPlane();
+                }
+            }
+        }
+        else
+        {
+            // 音量不够，重置计时器
+            blowTimer = 0f;
+        }
+    }
+
+    float GetMicVolume()
+    {
+        if (!micReady || micClip == null) return 0f;
+
+        // 获取当前麦克风录制位置
+        int micPosition = Microphone.GetPosition(micDevice);
+        if (micPosition <= 0) return 0f;
+
+        // 读取最近256个采样点
+        int sampleWindow = 256;
+        float[] samples = new float[sampleWindow];
+
+        // 计算读取起始位置，防止越界
+        int startPosition = micPosition - sampleWindow;
+        if (startPosition < 0) return 0f;
+
+        micClip.GetData(samples, startPosition);
+
+        // 计算RMS音量（均方根，比直接取最大值更准确）
+        float sum = 0f;
+        foreach (float sample in samples)
+        {
+            sum += sample * sample;
+        }
+        return Mathf.Sqrt(sum / sampleWindow);
     }
 }
