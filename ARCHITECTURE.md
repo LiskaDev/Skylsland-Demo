@@ -29,6 +29,13 @@
 - **降落机制**：碰撞 `Ground` 标签物体时触发降落，滑行减速后停止。
 - **物理管理**：上机解除飞机 `isKinematic`，下机重新锁定。玩家上机时设为 `isKinematic`。
 - **旋转处理**：与 PlayerMovement 相同思路，手动维护 `currentYaw`，不从 `eulerAngles` 读取。
+- **麦克风吹气启动**：
+  - 通过 `Microphone.Start()` 持续录音（1秒循环缓冲，44100Hz）。
+  - 每帧读取最近 256 个采样点，计算 **RMS 均方根音量**。
+  - 音量超过 `blowThreshold`（默认 0.1）且持续 `blowDuration`（默认 0.3s）后触发上机，防止误触。
+  - 设备选择优先级：Inspector 指定序号 > 自动识别 USB/Wireless/Headset > 第一个设备。
+  - `OnDisable` 时自动停止录音释放资源。
+  - 可通过 `micEnabled` 开关，可绑定 `TextMeshProUGUI` 显示实时音量调试。
 
 ### D. 传送系统 (`TeleportPoint.cs`)
 - **水晶动画**：旋转 + Sin 函数驱动上下浮动。
@@ -76,6 +83,7 @@ BuildingSystem ←── 按键冲突风险 ──→ VillagerBuilder
 | Ctrl+左键 | 删除方块 | BuildingSystem | |
 | 右键 | 指定村民建造位置 | VillagerBuilder | |
 | Escape | 释放鼠标 | PlayerMovement | |
+| 🎤 吹气 | 自动上机起飞 | PaperPlane | 需在 `boardDistance` 内，持续吹 0.3s |
 
 ## 5. 开发规范 (AI 请遵守)
 - **变量命名**：私有变量使用 `camelCase`，公共变量使用 `PascalCase`。
