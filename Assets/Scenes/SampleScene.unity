@@ -1380,6 +1380,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d72d046473815a43bf7d0609def08fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  dropPrefab: {fileID: 6968106258413079628, guid: 926c014222080ba4abf3aab2e7430bf2, type: 3}
+  dropCount: 1
   blockPrefabs:
   - {fileID: 2121767061275319962, guid: 86b27c2063c859646a647b2a84d33170, type: 3}
   - {fileID: 7820331787760957502, guid: 433528b47717ae64ca334fb5927cecec, type: 3}

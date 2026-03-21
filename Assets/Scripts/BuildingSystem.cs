@@ -4,6 +4,10 @@ using TMPro;  // TextMeshPro的命名空间
 
 public class BuildingSystem : MonoBehaviour
 {
+    [Header("掉落设置")]
+    [SerializeField] private GameObject dropPrefab; // 掉落物预制体
+    [SerializeField] private int dropCount = 1;     // 掉落数量
+
     // 方块类型数组：把三种预制体都放进来
     // 数组 = 一排格子，每个格子放一个东西
     [SerializeField] private GameObject[] blockPrefabs;
@@ -144,6 +148,35 @@ public class BuildingSystem : MonoBehaviour
         {
             if (hit.collider.gameObject.name.Contains("Block"))
             {
+                // 在方块位置生成掉落物
+                if (dropPrefab != null)
+                {
+                    for (int i = 0; i < dropCount; i++)
+                    {
+                        // 稍微随机偏移，不要全堆在一起
+                        Vector3 dropPos = hit.collider.transform.position + 
+                            new Vector3(
+                                Random.Range(-0.3f, 0.3f),
+                                0.5f,
+                                Random.Range(-0.3f, 0.3f)
+                            );
+                        
+                        GameObject drop = Instantiate(
+                            dropPrefab, dropPos, Quaternion.identity);
+                        
+                        // 给掉落物一个随机弹出力，像被打碎一样
+                        Rigidbody dropRb = drop.GetComponent<Rigidbody>();
+                        if (dropRb != null)
+                        {
+                            dropRb.AddForce(new Vector3(
+                                Random.Range(-2f, 2f),
+                                Random.Range(3f, 5f),
+                                Random.Range(-2f, 2f)
+                            ), ForceMode.Impulse);
+                        }
+                    }
+                }
+                
                 Destroy(hit.collider.gameObject);
             }
         }

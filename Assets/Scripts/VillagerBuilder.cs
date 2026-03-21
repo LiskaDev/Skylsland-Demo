@@ -211,7 +211,11 @@ public class VillagerBuilder : MonoBehaviour
         foreach (Vector3 localPos in currentBlueprint)
         {
             Vector3 worldPos = buildOrigin.position + localPos;
-            Instantiate(blockPrefab, worldPos, Quaternion.identity);
+            GameObject newBlock = Instantiate(blockPrefab, worldPos, Quaternion.identity);
+
+            // 建筑方块不可被吸取
+            Collectible col = newBlock.GetComponent<Collectible>();
+            if (col != null) col.isCollectible = false;
             yield return new WaitForSeconds(buildInterval);
         }
 
