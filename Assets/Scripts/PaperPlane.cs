@@ -27,6 +27,8 @@ public class PaperPlane : MonoBehaviour
     [SerializeField] private float blowDuration = 0.3f;
     // 是否启用麦克风控制
     [SerializeField] private bool micEnabled = true;
+    // 手动指定麦克风设备序号（0=第一个，1=第二个）
+    [SerializeField] private int micDeviceIndex = 0;
 
     // 麦克风相关内部变量
     private AudioClip micClip;
@@ -97,8 +99,36 @@ public class PaperPlane : MonoBehaviour
             return;
         }
 
-        // 使用第一个麦克风设备
+        // 打印所有麦克风设备，方便调试
+        foreach (string device in Microphone.devices)
+        {
+            Debug.Log("检测到麦克风：" + device);
+        }
+
+        // 先给一个默认值
         micDevice = Microphone.devices[0];
+
+        // 优先使用Inspector指定的设备序号
+        if (micDeviceIndex >= 0 && micDeviceIndex < Microphone.devices.Length)
+        {
+            micDevice = Microphone.devices[micDeviceIndex];
+        }
+        else
+        {
+            // 序号无效时，自动优先选择外置/无线类设备
+            foreach (string device in Microphone.devices)
+            {
+                string lower = device.ToLower();
+                if (lower.Contains("usb") ||
+                    lower.Contains("wireless") ||
+                    lower.Contains("外置") ||
+                    lower.Contains("headset"))
+                {
+                    micDevice = device;
+                    break;
+                }
+            }
+        }
 
         // 开始录音：设备名，循环录制，1秒缓冲，44100采样率
         micClip = Microphone.Start(micDevice, true, 1, 44100);
@@ -124,8 +154,15 @@ public class PaperPlane : MonoBehaviour
         // 显示当前音量（调试用）
         if (micVolumeText != null)
         {
-            float vol = GetMicVolume();
-            micVolumeText.text = "Mic: " + vol.ToString("F3");
+            if (!micEnabled)
+            {
+                micVolumeText.text = "Mic: OFF";
+            }
+            else
+            {
+                float vol = GetMicVolume();
+                micVolumeText.text = "Mic: " + vol.ToString("F3");
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.F))
@@ -364,5 +401,17 @@ public class PaperPlane : MonoBehaviour
             sum += sample * sample;
         }
         return Mathf.Sqrt(sum / sampleWindow);
+    }
+
+    void OnDisable()
+    {
+        if (!string.IsNullOrEmpty(micDevice) && Microphone.IsRecording(micDevice))
+        {
+            Microphone.End(micDevice);
+        }
+
+        micReady = false;
+        micClip = null;
+        blowTimer = 0f;
     }
 }

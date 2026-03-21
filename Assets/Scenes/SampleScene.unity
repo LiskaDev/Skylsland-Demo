@@ -1009,8 +1009,9 @@ MonoBehaviour:
   isFlying: 0
   currentSpeed: 0
   blowThreshold: 0.1
-  blowDuration: 0.003
+  blowDuration: 0.2
   micEnabled: 1
+  micDeviceIndex: 0
   micVolumeText: {fileID: 1561631738}
   planeUI: {fileID: 1777575650}
   takeoffProtectTime: 0.8
