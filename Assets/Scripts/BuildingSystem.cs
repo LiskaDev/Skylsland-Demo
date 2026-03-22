@@ -5,8 +5,9 @@ using TMPro;  // TextMeshPro的命名空间
 public class BuildingSystem : MonoBehaviour
 {
     [Header("掉落设置")]
-    [SerializeField] private GameObject dropPrefab; // 掉落物预制体
-    [SerializeField] private int dropCount = 1;     // 掉落数量
+    // 三种掉落物对应三种方块
+    [SerializeField] private GameObject[] dropPrefabs;
+    [SerializeField] private int dropCount = 1;
 
     // 方块类型数组：把三种预制体都放进来
     // 数组 = 一排格子，每个格子放一个东西
@@ -148,35 +149,37 @@ public class BuildingSystem : MonoBehaviour
         {
             if (hit.collider.gameObject.name.Contains("Block"))
             {
-                // 在方块位置生成掉落物
-                if (dropPrefab != null)
+                // 根据方块类型选对应掉落物
+                GameObject selectedDrop = dropPrefabs[0]; // 默认Brick
+                
+                string blockName = hit.collider.gameObject.name;
+                if (blockName.Contains("Block_Stone") && dropPrefabs.Length > 1)
+                    selectedDrop = dropPrefabs[1]; // Stone
+                else if (blockName.Contains("Block_Wood") && dropPrefabs.Length > 2)
+                    selectedDrop = dropPrefabs[2]; // Wood
+
+                for (int i = 0; i < dropCount; i++)
                 {
-                    for (int i = 0; i < dropCount; i++)
+                    Vector3 dropPos = hit.collider.transform.position +
+                        new Vector3(
+                            Random.Range(-0.3f, 0.3f),
+                            0.5f,
+                            Random.Range(-0.3f, 0.3f)
+                        );
+
+                    GameObject drop = Instantiate(selectedDrop, dropPos, Quaternion.identity);
+
+                    Rigidbody dropRb = drop.GetComponent<Rigidbody>();
+                    if (dropRb != null)
                     {
-                        // 稍微随机偏移，不要全堆在一起
-                        Vector3 dropPos = hit.collider.transform.position + 
-                            new Vector3(
-                                Random.Range(-0.3f, 0.3f),
-                                0.5f,
-                                Random.Range(-0.3f, 0.3f)
-                            );
-                        
-                        GameObject drop = Instantiate(
-                            dropPrefab, dropPos, Quaternion.identity);
-                        
-                        // 给掉落物一个随机弹出力，像被打碎一样
-                        Rigidbody dropRb = drop.GetComponent<Rigidbody>();
-                        if (dropRb != null)
-                        {
-                            dropRb.AddForce(new Vector3(
-                                Random.Range(-2f, 2f),
-                                Random.Range(3f, 5f),
-                                Random.Range(-2f, 2f)
-                            ), ForceMode.Impulse);
-                        }
+                        dropRb.AddForce(new Vector3(
+                            Random.Range(-2f, 2f),
+                            Random.Range(3f, 5f),
+                            Random.Range(-2f, 2f)
+                        ), ForceMode.Impulse);
                     }
                 }
-                
+
                 Destroy(hit.collider.gameObject);
             }
         }

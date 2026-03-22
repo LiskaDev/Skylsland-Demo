@@ -120,7 +120,18 @@ public class Collectible : MonoBehaviour
 
     void Collect()
     {
-        // 这里以后可以加：背包数量+1，播放音效等
+        if (Inventory.Instance != null)
+        {
+            string itemName = gameObject.name;
+            
+            if (itemName.Contains("BlockDrop_Stone"))
+                Inventory.Instance.AddItem("Stone");
+            else if (itemName.Contains("BlockDrop_Wood"))
+                Inventory.Instance.AddItem("Wood");
+            else
+                Inventory.Instance.AddItem("Brick");
+        }
+        
         Debug.Log("收集了：" + gameObject.name);
         Destroy(gameObject);
     }

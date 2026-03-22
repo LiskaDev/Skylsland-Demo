@@ -11,6 +11,9 @@
 /[Ll]ogs/
 /[Uu]serSettings/
 
+# 第三方素材资源（体积大，可能有版权限制）
+/Assets/ThirdParty/
+
 # Memory-mapped files
 /MemoryCaptures/
 
