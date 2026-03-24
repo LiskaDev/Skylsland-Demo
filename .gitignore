@@ -67,3 +67,6 @@ crashlytics-build.properties
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# 音效和音乐大文件（不推送到Git）
+/Assets/Sounds/
