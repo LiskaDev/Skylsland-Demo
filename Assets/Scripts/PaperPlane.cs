@@ -284,6 +284,7 @@ public class PaperPlane : MonoBehaviour
 
     void BoardPlane()
     {
+        SoundManager.Instance?.PlaySound("Plane");
         isFlying = true;
         isLanded = false;
         takeoffTimer = takeoffProtectTime;

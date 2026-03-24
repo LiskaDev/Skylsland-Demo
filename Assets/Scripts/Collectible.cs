@@ -133,6 +133,7 @@ public class Collectible : MonoBehaviour
         }
         
         Debug.Log("收集了：" + gameObject.name);
+        SoundManager.Instance?.PlaySound("Collect");
         Destroy(gameObject);
     }
 }

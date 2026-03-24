@@ -141,6 +141,7 @@ public class TeleportPoint : MonoBehaviour
         // 移动玩家到目标位置
         player.position = destination;
 
+        SoundManager.Instance?.PlaySound("Teleport");
         ClosePanel();
         Debug.Log("传送到：Island 0" + (index + 1));
     }

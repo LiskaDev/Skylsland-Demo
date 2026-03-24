@@ -136,6 +136,7 @@ public class BuildingSystem : MonoBehaviour
         {
             Instantiate(blockPrefabs[currentBlockIndex],
                 previewBlock.transform.position, Quaternion.identity);
+            SoundManager.Instance?.PlaySound("Build");
         }
     }
 
