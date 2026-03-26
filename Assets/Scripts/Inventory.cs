@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using TMPro;
 
 public class Inventory : MonoBehaviour
@@ -26,19 +26,19 @@ public class Inventory : MonoBehaviour
             Destroy(gameObject);
     }
 
-    // 添加物品，type对应方块名称
-    public void AddItem(string type)
+    // 添加物品，可以指定数量（默认1个）
+    public void AddItem(string type, int amount = 1)
     {
         switch (type)
         {
             case "Brick":
-                brickCount++;
+                brickCount += amount;
                 break;
             case "Stone":
-                stoneCount++;
+                stoneCount += amount;
                 break;
             case "Wood":
-                woodCount++;
+                woodCount += amount;
                 break;
         }
         // 更新UI显示

@@ -202,7 +202,25 @@ public class VillagerBuilder : MonoBehaviour
         }
     }
 
-    IEnumerator BuildBlueprint()
+    // ==========================================
+    // 供外部任务系统调用的专属方法
+    // ==========================================
+    public void StartBuildingFromQuest()
+    {
+        if (isBuilding) return;
+        
+        currentBlueprint = blueprintHut; // 强制盖小屋
+        if (buildOrigin != null)
+        {
+            // 在村民正前方稍微隔开一点的地方生成建筑原点
+            buildOrigin.position = transform.position + transform.forward * 3f;
+        }
+        
+        // 启动带有任务标记的建造协程
+        StartCoroutine(BuildBlueprintOptions(true));
+    }
+
+    IEnumerator BuildBlueprintOptions(bool fromQuest)
     {
         isBuilding = true;
         agent.SetDestination(transform.position);
@@ -221,5 +239,21 @@ public class VillagerBuilder : MonoBehaviour
 
         isBuilding = false;
         Debug.Log("建造完成！");
+
+        // 如果是为任务建造的，完工后呼叫任务管理器发奖励
+        if (fromQuest)
+        {
+            QuestManager qm = Object.FindFirstObjectByType<QuestManager>();
+            if (qm != null)
+            {
+                qm.OnQuestComplete();
+            }
+        }
+    }
+
+    IEnumerator BuildBlueprint()
+    {
+        // 兼容原版的自主右键建造
+        yield return StartCoroutine(BuildBlueprintOptions(false));
     }
 }
