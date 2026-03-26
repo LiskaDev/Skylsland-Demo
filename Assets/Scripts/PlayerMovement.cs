@@ -5,7 +5,8 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("移动")]
-    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float walkSpeed = 5f;      // 基础走路速度
+    [SerializeField] private float runSpeed = 10f;      // 按住Shift时的奔跑速度
     [SerializeField] private float jumpForce = 5f;
 
     [Header("鼠标视角")]
@@ -59,15 +60,25 @@ public class PlayerMovement : MonoBehaviour
         Vector3 moveDirection = transform.forward * vertical + transform.right * horizontal;
         moveDirection.y = 0f; 
 
+        // 判断是否按住了 Shift 键进行跑步
+        bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        float currentMoveSpeed = isRunning ? runSpeed : walkSpeed;
+
         // ====== 更新速度动画 ======
-        // 判断有没有在移动，获取一个 0(没动) 到 1(移动) 的速度值传递给 Animator 的 Speed 参数
-        float currentSpeed = moveDirection.magnitude > 0.1f ? 1f : 0f;
-        if (animator != null)
+        // 给 Animator 传递的 Speed 参数：不动为 0，走路为 1，跑步为 2
+        float animSpeed = 0f;
+        if (moveDirection.magnitude > 0.1f)
         {
-            animator.SetFloat("Speed", currentSpeed);
+            animSpeed = isRunning ? 2f : 1f;
         }
 
-        transform.position += moveDirection.normalized * moveSpeed * Time.deltaTime;
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", animSpeed);
+        }
+
+        // 用当前的最终速度来控制人物真实位移
+        transform.position += moveDirection.normalized * currentMoveSpeed * Time.deltaTime;
 
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {

@@ -70,3 +70,6 @@ Thumbs.db
 
 # 音效和音乐大文件（不推送到Git）
 /Assets/Sounds/
+
+# 外部下载的3D模型与动画动作大文件（不推送到Git）
+/Assets/Mixamo/
