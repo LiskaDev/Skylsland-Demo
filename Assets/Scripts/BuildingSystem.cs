@@ -51,12 +51,16 @@ public class BuildingSystem : MonoBehaviour
 
         UpdatePreview();
 
-        if (Input.GetMouseButtonDown(0) && !Input.GetKey(KeyCode.LeftControl))
+        // 安全检测：判断鼠标当前是不是悬停在UI界面上
+        bool isPointerOverUI = UnityEngine.EventSystems.EventSystem.current != null && 
+                               UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+
+        if (Input.GetMouseButtonDown(0) && !Input.GetKey(KeyCode.LeftControl) && !isPointerOverUI)
         {
             PlaceBlock();
         }
 
-        if (Input.GetMouseButtonDown(0) && Input.GetKey(KeyCode.LeftControl))
+        if (Input.GetMouseButtonDown(0) && Input.GetKey(KeyCode.LeftControl) && !isPointerOverUI)
         {
             RemoveBlock();
         }
@@ -116,8 +120,12 @@ public class BuildingSystem : MonoBehaviour
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
         int layerMask = ~(1 << 6);
+        
+        // 如果鼠标悬停在UI上，同样直接隐藏幽灵方块
+        bool isPointerOverUI = UnityEngine.EventSystems.EventSystem.current != null && 
+                               UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
 
-        if (Physics.Raycast(ray, out hit, 100f, layerMask))
+        if (Physics.Raycast(ray, out hit, 100f, layerMask) && !isPointerOverUI)
         {
             previewBlock.SetActive(true);
             Vector3 previewPosition = hit.point + hit.normal * (blockSize * 0.5f);
