@@ -46,6 +46,17 @@ public class PaperPlane : MonoBehaviour
     [SerializeField] private float takeoffProtectTime = 0.8f; // 上机后这段时间不判定降落
     [SerializeField] private float takeoffAutoLift = 2f;      // 起飞保护期间的自动上抬速度
 
+    // ===== 能量系统 =====
+    [Header("能量系统")]
+    private float energy = 0f;                                // 当前能量，范围 0~100，初始 0
+
+    [Header("Energy UI")]
+    [SerializeField] private UnityEngine.UI.Slider energySlider; // 能量条 Slider
+
+    // 能量条颜色阈值用的图片组件（运行时从 energySlider.fillRect 获取）
+    private UnityEngine.UI.Image energyFillImage;
+    // ====================
+
     private Transform player;
     private PlayerMovement playerMovement;
     private Rigidbody playerRb;
@@ -87,6 +98,10 @@ public class PaperPlane : MonoBehaviour
 
         // 初始化麦克风
         InitMicrophone();
+
+        // 缓存能量条的 Fill 图片组件，用于动态改颜色
+        if (energySlider != null && energySlider.fillRect != null)
+            energyFillImage = energySlider.fillRect.GetComponent<UnityEngine.UI.Image>();
     }
 
     void InitMicrophone()
@@ -145,11 +160,29 @@ public class PaperPlane : MonoBehaviour
             planeUI.SetActive(!isFlying && dist <= boardDistance);
         }
 
-        // 麦克风吹气检测
+        // 麦克风吹气 → 充能（未上机时才充能）
         if (micEnabled && micReady && !isFlying)
         {
             CheckBlowing();
         }
+
+        // ===== 能量消耗 & 强制下机 =====
+        if (isFlying && !isLanded)
+        {
+            // 飞行中每秒消耗 4 点能量
+            energy = Mathf.Max(energy - 4f * Time.deltaTime, 0f);
+
+            // 能量耗尽且速度已降至最低 → 强制下机
+            if (energy <= 0f && currentSpeed <= minSpeed)
+            {
+                Debug.Log("能量耗尽，强制降落！");
+                ExitPlane();
+            }
+        }
+
+        // 每帧更新能量条 UI
+        UpdateEnergyUI();
+        // ================================
 
         // 显示当前音量（调试用）
         if (micVolumeText != null)
@@ -203,7 +236,7 @@ public class PaperPlane : MonoBehaviour
     {
         // 速度控制
         float speedInput = Input.GetAxis("Vertical");
-        if (speedInput > 0)
+        if (speedInput > 0 && energy > 0f)  // 能量耗尽时不允许加速
             currentSpeed += acceleration * Time.deltaTime;
         else if (speedInput < 0)
             currentSpeed -= deceleration * Time.deltaTime;
@@ -214,6 +247,10 @@ public class PaperPlane : MonoBehaviour
                 currentSpeed, midSpeed, deceleration * 0.3f * Time.deltaTime);
         }
         currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, maxSpeed);
+
+        // 能量耗尽时：速度向 minSpeed 滑行（滑翔感），转向和升降仍可用
+        if (energy <= 0f)
+            currentSpeed = Mathf.MoveTowards(currentSpeed, minSpeed, deceleration * Time.deltaTime);
 
         // 转向：累加yaw角度，用自己维护的变量，不从eulerAngles读取
         float turnInput = Input.GetAxis("Horizontal");
@@ -284,6 +321,14 @@ public class PaperPlane : MonoBehaviour
 
     void BoardPlane()
     {
+        // ===== 能量检测：不足 20 不允许上机 =====
+        if (energy < 20f)
+        {
+            Debug.Log("Energy low! 请先吹气充能至 20 以上。");
+            return;
+        }
+        // ========================================
+
         SoundManager.Instance?.PlaySound("Plane");
         isFlying = true;
         isLanded = false;
@@ -352,27 +397,21 @@ public class PaperPlane : MonoBehaviour
     void CheckBlowing()
     {
         float volume = GetMicVolume();
+        float dist = Vector3.Distance(transform.position, player.position);
 
-        if (volume > blowThreshold)
+        if (volume > blowThreshold && dist <= boardDistance)
         {
-            // 音量超过阈值，累计吹气时间
-            blowTimer += Time.deltaTime;
-
-            // 吹气时间够了，触发上机
-            if (blowTimer >= blowDuration)
+            // 在飞机旁吹气 → 持续充能（上限 100）
+            if (energy < 100f)
             {
-                float dist = Vector3.Distance(transform.position, player.position);
-                if (dist <= boardDistance)
-                {
-                    blowTimer = 0f;
-                    Debug.Log("检测到吹气！启动飞机！");
-                    BoardPlane();
-                }
+                energy = Mathf.Min(energy + 30f * Time.deltaTime, 100f);
+                Debug.Log("充能中... Energy: " + energy.ToString("F1"));
             }
+            // 无论充能与否，重置旧版 blowTimer，保留字段兼容性
+            blowTimer = 0f;
         }
         else
         {
-            // 音量不够，重置计时器
             blowTimer = 0f;
         }
     }
@@ -403,6 +442,32 @@ public class PaperPlane : MonoBehaviour
         }
         return Mathf.Sqrt(sum / sampleWindow);
     }
+
+    // ===== 对外暴露：给 UI 读取能量值 =====
+    public float Energy => energy;
+    public float MaxEnergy => 100f;
+    // ========================================
+
+    // ===== 能量条 UI 更新 =====
+    void UpdateEnergyUI()
+    {
+        if (energySlider == null) return;
+
+        // 同步进度值（0~1）
+        energySlider.value = energy / 100f;
+
+        // 根据能量比例改变填充颜色
+        if (energyFillImage != null)
+        {
+            if (energy > 60f)
+                energyFillImage.color = Color.green;
+            else if (energy > 20f)
+                energyFillImage.color = Color.yellow;
+            else
+                energyFillImage.color = Color.red;
+        }
+    }
+    // ==========================
 
     void OnDisable()
     {
