@@ -73,3 +73,7 @@ Thumbs.db
 
 # 外部下载的3D模型与动画动作大文件（不推送到Git）
 /Assets/Mixamo/
+
+# 测试截图与相关Meta文件
+/Assets/Screenshots/
+Assets/Screenshots.meta
